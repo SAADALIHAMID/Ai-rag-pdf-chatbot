@@ -188,6 +188,16 @@ async def get_progress_stream(request: Request, task_id: str):
 
     return EventSourceResponse(event_generator())
 
+@app.get("/api/progress/{task_id}/status")
+async def get_task_progress_status(task_id: str):
+    """Direct polling fallback for progress bar."""
+    state = task_progress_state.get(task_id)
+    if not state:
+        if task_id.startswith("cached_"):
+            return {"task_id": task_id, "status": "completed", "progress": 100, "message": "Loaded instantly from ChromaDB cache."}
+        return {"task_id": task_id, "status": "processing", "progress": 50, "message": "Indexing document..."}
+    return state
+
 @app.post("/api/query")
 async def query_document(request: QueryRequest):
     """

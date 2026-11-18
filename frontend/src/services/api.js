@@ -104,7 +104,15 @@ export async function uploadDocument(file, onProgressUpdate) {
 
 function listenToProgress(taskId, onProgressUpdate) {
   return new Promise((resolve) => {
+    let isFinished = false;
     const eventSource = new EventSource(`${API_BASE}/progress/${taskId}`);
+
+    const finish = (result) => {
+      if (isFinished) return;
+      isFinished = true;
+      try { eventSource.close(); } catch (_) {}
+      resolve(result);
+    };
 
     eventSource.addEventListener("progress", (event) => {
       try {
@@ -112,18 +120,37 @@ function listenToProgress(taskId, onProgressUpdate) {
         onProgressUpdate(data);
 
         if (data.status === "completed" || data.status === "error") {
-          eventSource.close();
-          resolve(data);
+          finish(data);
         }
       } catch (err) {
         console.error("Failed to parse progress frame:", err);
       }
     });
 
-    eventSource.onerror = (err) => {
-      console.warn("Progress SSE disconnected or finished:", err);
-      eventSource.close();
-      resolve(null);
+    eventSource.onerror = async (err) => {
+      console.warn("Progress SSE disconnected; switching to polling fallback:", err);
+      try { eventSource.close(); } catch (_) {}
+
+      // Poll until completed or 45 seconds timeout
+      let attempts = 0;
+      while (!isFinished && attempts < 45) {
+        attempts++;
+        await new Promise((r) => setTimeout(r, 1000));
+        try {
+          const res = await fetch(`${API_BASE}/progress/${taskId}/status`);
+          if (res.ok) {
+            const data = await res.json();
+            onProgressUpdate(data);
+            if (data.status === "completed" || data.status === "error" || data.progress >= 100) {
+              finish(data);
+              return;
+            }
+          }
+        } catch (pollErr) {
+          console.warn("Poll attempt failed:", pollErr);
+        }
+      }
+      finish(null);
     };
   });
 }
