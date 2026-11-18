@@ -1,8 +1,10 @@
 import os
-# Windows OpenBLAS memory stability
+# Memory stability & thread limits for lightweight cloud hosting (e.g. Render 512MB RAM)
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("TORCH_NUM_THREADS", "1")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 from pathlib import Path
 from pydantic_settings import BaseSettings
@@ -33,8 +35,8 @@ class Settings(BaseSettings):
     # Background Task Broker
     REDIS_URL: str = "redis://localhost:6379/0"
     
-    # Embedding & Reranker Local Models (0% Cost, runs locally on CPU/RAM)
-    EMBEDDING_MODEL_NAME: str = "BAAI/bge-small-en-v1.5"
+    # Embedding & Reranker Local Models (Ultra-lightweight for 512MB RAM cloud instances)
+    EMBEDDING_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
     RERANKER_MODEL_NAME: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     
     # Chunking Configuration

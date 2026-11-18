@@ -23,9 +23,10 @@ class LocalEmbeddingEngine:
                 os.environ["HF_TOKEN"] = settings.HF_TOKEN
                 os.environ["HUGGINGFACE_HUB_TOKEN"] = settings.HF_TOKEN
             from sentence_transformers import SentenceTransformer
-            # Authenticated Hugging Face model loaded onto local CPU/RAM with minimal memory footprint (~130MB)
+            # Authenticated Hugging Face model loaded onto local CPU/RAM with ultra-low memory footprint (~80MB)
             self._model = SentenceTransformer(
                 settings.EMBEDDING_MODEL_NAME,
+                device="cpu",
                 token=settings.HF_TOKEN if settings.HF_TOKEN else None
             )
             logger.info(f"Successfully loaded {settings.EMBEDDING_MODEL_NAME} from Hugging Face.")
@@ -48,7 +49,10 @@ class LocalEmbeddingEngine:
         Vectorize user search query.
         BGE models benefit from instruction prefix for queries to maximize retrieval precision.
         """
-        query_text = f"Represent this sentence for searching relevant passages: {query}"
+        if "bge" in settings.EMBEDDING_MODEL_NAME.lower():
+            query_text = f"Represent this sentence for searching relevant passages: {query}"
+        else:
+            query_text = query
         embedding = self.model.encode(
             [query_text],
             show_progress_bar=False,

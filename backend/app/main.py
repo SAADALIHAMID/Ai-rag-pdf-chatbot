@@ -46,15 +46,12 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Initializing RAG AI Engine components...")
-    # Pre-warm embedding model, reranker model, and BM25 index
+    logger.info("Initializing RAG AI Engine: Fast port binding mode...")
     try:
-        _ = embedding_engine.model
-        _ = reranker.model
         hybrid_retriever.update_bm25_index()
     except Exception as e:
-        logger.warning(f"Startup initialization notice: {e}")
-    logger.info("RAG Engine startup completed successfully. All models loaded.")
+        logger.warning(f"Initial BM25 index notice: {e}")
+    logger.info("RAG Engine started successfully. Port bound.")
 
 @app.get("/")
 async def root():

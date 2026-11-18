@@ -24,6 +24,7 @@ class PrecisionReranker:
             from sentence_transformers import CrossEncoder
             self._model = CrossEncoder(
                 settings.RERANKER_MODEL_NAME,
+                device="cpu",
                 model_kwargs={"token": settings.HF_TOKEN} if settings.HF_TOKEN else {}
             )
             logger.info(f"Loaded {settings.RERANKER_MODEL_NAME} from Hugging Face successfully.")
@@ -59,15 +60,15 @@ class PrecisionReranker:
             eval_text = f"{chunk_text}\n{collapsed_text}"
             pairs.append([clean_q, eval_text])
 
-        # Compute cross-encoder relevance scores
-        scores = self.model.predict(pairs)
-
-        # Attach scores to candidate dicts
-        for idx, score in enumerate(scores):
-            candidates[idx]["rerank_score"] = float(score)
-
-        # Sort candidates strictly by cross-encoder score descending
-        ranked_candidates = sorted(candidates, key=lambda x: x.get("rerank_score", -999.0), reverse=True)
+        # Compute cross-encoder relevance scores safely
+        try:
+            scores = self.model.predict(pairs)
+            for idx, score in enumerate(scores):
+                candidates[idx]["rerank_score"] = float(score)
+            ranked_candidates = sorted(candidates, key=lambda x: x.get("rerank_score", -999.0), reverse=True)
+        except Exception as e:
+            logger.warning(f"Cross-Encoder reranking fallback to hybrid candidate scores: {e}")
+            ranked_candidates = sorted(candidates, key=lambda x: x.get("score", 0.0), reverse=True)
 
         top_chunks = ranked_candidates[:top_k]
         top_scores = [round(c.get("rerank_score", 0.0), 3) for c in top_chunks]
