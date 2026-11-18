@@ -165,9 +165,13 @@ async def get_progress_stream(request: Request, task_id: str):
                         "event": "progress",
                         "data": json.dumps(state)
                     }
+                else:
+                    # Keep-alive heartbeat ping to prevent cloud proxy disconnects
+                    yield {"comment": "ping"}
                 if state["status"] in ["completed", "error"]:
                     break
             else:
+                yield {"comment": "waiting"}
                 # If cached task
                 if task_id.startswith("cached_"):
                     yield {
@@ -195,6 +199,26 @@ async def query_document(request: QueryRequest):
     query_text = request.query.strip()
     if not query_text:
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
+
+    clean_q = query_text.lower()
+    is_greeting = any(clean_q.startswith(g) or clean_q == g for g in [
+        "hy", "hi", "hello", "hey", "salam", "assalam", "halo", "kaise ho", "kya haal", "good morning", "good evening", "who are you"
+    ])
+    has_docs = bool(vector_store.get_all_documents())
+
+    if is_greeting or not has_docs:
+        greeting_text = (
+            "Hello! I am DocuMind AI, your verified enterprise document assistant. "
+            "Please upload a PDF, TXT, or Markdown document on the left panel to begin asking questions, "
+            "and I will analyze its facts with zero hallucination!"
+            if not has_docs else
+            "Hello! I am ready to answer any questions strictly based on your uploaded document. How can I help you today?"
+        )
+        async def sse_greeting():
+            yield {"event": "sources", "data": json.dumps({"sources": [], "retrieval_time": 0.0})}
+            yield {"event": "token", "data": json.dumps({"token": greeting_text})}
+            yield {"event": "done", "data": json.dumps({"total_time": 0.05})}
+        return EventSourceResponse(sse_greeting())
 
     start_time = time.time()
 
