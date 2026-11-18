@@ -1,4 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+let rawBase = import.meta.env.VITE_API_BASE_URL || "/api";
+if (rawBase.startsWith("http") && !rawBase.replace(/\/+$/, "").endsWith("/api")) {
+  rawBase = rawBase.replace(/\/+$/, "") + "/api";
+}
+const API_BASE = rawBase.replace(/\/+$/, "");
 
 // Cache token in memory / localStorage
 let authToken = localStorage.getItem("rag_jwt_token") || null;

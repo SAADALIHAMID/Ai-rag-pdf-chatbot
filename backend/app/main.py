@@ -56,6 +56,19 @@ async def startup_event():
         logger.warning(f"Startup initialization notice: {e}")
     logger.info("RAG Engine startup completed successfully. All models loaded.")
 
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "service": "Ultra-Fast Fact-Grounding RAG Engine",
+        "docs": "/docs",
+        "health": "/api/health"
+    }
+
+@app.get("/api/session")
+async def get_session():
+    return {"token": "session-active", "status": "authenticated"}
+
 @app.get("/api/health")
 async def health():
     return {
