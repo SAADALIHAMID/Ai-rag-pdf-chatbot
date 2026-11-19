@@ -70,16 +70,16 @@ def execute_ingestion_pipeline(
             return {"status": "error", "message": "No text extracted"}
 
         # Step 2: Chunk Text
-        update_task_progress(task_id, doc_id, filename, "chunking", 35, f"Structuring {total_pages} pages into 1000-char chunks...")
+        update_task_progress(task_id, doc_id, filename, "chunking", 35, f"Structuring {total_pages} pages into chunks...")
         chunks = chunk_pages_data(pages_data, doc_id, filename)
         total_chunks = len(chunks)
 
         # Step 3: Embed & Store in ChromaDB
-        update_task_progress(task_id, doc_id, filename, "embedding", 50, f"Generating BGE embeddings for {total_chunks} chunks...")
+        update_task_progress(task_id, doc_id, filename, "embedding", 55, f"Vectorizing {total_chunks} chunks via ONNX...")
 
         def on_embed_progress(pct: int, msg: str):
-            # Scale 50% to 90%
-            current_pct = 50 + int(pct * 0.40)
+            # Scale 60% to 90%
+            current_pct = 60 + int(pct * 0.30)
             update_task_progress(task_id, doc_id, filename, "indexing", current_pct, msg)
 
         vector_store.add_chunks(

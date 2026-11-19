@@ -53,6 +53,16 @@ async def startup_event():
         logger.warning(f"Initial BM25 index notice: {e}")
     logger.info("RAG Engine started successfully. Port bound.")
 
+    # Background pre-warm ONNX model so user uploads never wait for initial download
+    async def prewarm_onnx():
+        try:
+            logger.info("Pre-warming ONNX model in background...")
+            _ = embedding_engine.model
+            logger.info("ONNX model pre-warmed and cached.")
+        except Exception as err:
+            logger.warning(f"Background prewarm notice: {err}")
+    asyncio.create_task(prewarm_onnx())
+
 @app.get("/")
 async def root():
     return {
