@@ -67,9 +67,20 @@ export default function FileUploader({ onUploadComplete, activeDoc, onSelectDoc,
         setProgressState(update);
       });
 
+      // Show 100% completed state clearly, then auto-dismiss
+      setProgressState({
+        progress: 100,
+        status: 'completed',
+        message: 'Successfully indexed into ChromaDB!',
+      });
+
       if (onUploadComplete) {
-        onUploadComplete(result);
+        await onUploadComplete(result);
       }
+
+      setTimeout(() => {
+        setProgressState(null);
+      }, 3000);
     } catch (err) {
       console.error('Upload processing error:', err);
       setErrorMessage(err.message || 'Failed to ingest file');
